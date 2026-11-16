@@ -1,0 +1,23 @@
+# CMake / Visual Studio build output
+build/
+out/
+.vs/
+CMakeSettings.json
+CMakeUserPresets.json
+*.user
+*.suo
+*.vcxproj*
+*.sln
+*.slnx
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+x64/
+Debug/
+Release/
+*.exe
+*.pdb
+*.ilk
+*.obj
+# temporary Word files
+~$*.docx
