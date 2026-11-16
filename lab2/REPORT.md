@@ -4,7 +4,7 @@
 
 **ОС:** Windows 11 Pro (сборка 26200), 8 логических ядер
 
-**IDE:** Visual Studio Community 2026, компилятор MSVC 19.52, CMake 4.3 (генератор «Visual Studio 18 2026», x64)
+**IDE:** Visual Studio Community 2026 (версия 18.12), компилятор MSVC 19.52, CMake 4.3, сборка x64
 
 ## Что сделано
 
@@ -21,11 +21,11 @@
 
 Debug: значения около 0.0125–0.0134.
 
-![Debug, с мьютексом](screenshots/mutex_debug.png)
+![Три запуска в Debug, с мьютексом](screenshots/mutex_debug.png)
 
 Release: значения около 0.0345–0.0362.
 
-![Release, с мьютексом](screenshots/mutex_release.png)
+![Три запуска в Release, с мьютексом](screenshots/mutex_release.png)
 
 ## Ответы на вопросы
 
@@ -53,9 +53,9 @@ Release: значения около 0.0345–0.0362.
 
 **Удалите переменную m, перезапустите программу несколько раз. Как изменился вывод в консоль?**
 
-![Debug, без мьютекса](screenshots/no_mutex_debug.png)
+![Три запуска в Debug, без мьютекса](screenshots/no_mutex_debug.png)
 
-![Release, без мьютекса](screenshots/no_mutex_release.png)
+![Три запуска в Release, без мьютекса](screenshots/no_mutex_release.png)
 
 Вывод перемешался. Строка `std::cout << name << ": " << i << std::endl` — это не одна операция, а четыре отдельных вызова `operator<<`. Без мьютекса поток может быть прерван между любыми из них, и в промежуток вклинивается вывод другого потока. На скриншотах видно, например, `t1t2: : t30.0124602`, `t3t1: 0.0128923`, `t1t2t3: : 0.0131694`: имена нескольких потоков идут подряд, потом двоеточия, потом числа; переводы строк стоят не там.
 

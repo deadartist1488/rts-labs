@@ -22,9 +22,9 @@
 Из командной строки (Developer PowerShell for VS):
 
 ```
-cmake --preset vs
-cmake --build --preset debug
-cmake --build --preset release
+cmake -S . -B build
+cmake --build build --config Debug
+cmake --build build --config Release
 ```
 
 Исполняемые файлы появятся в `build/labN/Debug` и `build/labN/Release`.

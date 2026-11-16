@@ -10,6 +10,7 @@ import sys
 from pathlib import Path
 
 from docx import Document
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Cm, Pt
 
 INLINE = re.compile(r"(\*\*.+?\*\*|`[^`]+`)")
@@ -36,6 +37,7 @@ def convert(md_path: Path):
 
     lines = md_path.read_text(encoding="utf-8").splitlines()
     i = 0
+    figure = 0
     while i < len(lines):
         line = lines[i]
         if line.startswith("```"):
@@ -52,8 +54,13 @@ def convert(md_path: Path):
             level = len(line) - len(line.lstrip("#"))
             doc.add_heading(line[level:].strip(), level=min(level, 3))
         elif m := re.match(r"!\[(.*?)\]\((.+?)\)", line):
+            figure += 1
             doc.add_picture(str(md_path.parent / m.group(2)), width=Cm(16))
-            cap = doc.add_paragraph(m.group(1))
+            pic = doc.paragraphs[-1]
+            pic.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            pic.paragraph_format.keep_with_next = True   # подпись не отрывается от рисунка
+            cap = doc.add_paragraph(f"Рисунок {figure} — {m.group(1)}")
+            cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
             cap.runs[0].italic = True
         elif re.match(r"^(- |\d+\. )", line):
             numbered = line[0].isdigit()
@@ -63,6 +70,14 @@ def convert(md_path: Path):
         elif line.strip():
             add_inline(doc.add_paragraph(), line)
         i += 1
+
+    # свойства документа: автор и название
+    fio = re.search(r'STUDENT_FIO\s+"([^"]+)"',
+                    (md_path.parent.parent / "student.cmake").read_text(encoding="utf-8"))
+    doc.core_properties.author = fio.group(1) if fio else ""
+    doc.core_properties.last_modified_by = doc.core_properties.author
+    doc.core_properties.title = lines[0].lstrip("# ").strip()
+    doc.core_properties.comments = ""
 
     out = md_path.with_suffix(".docx")
     doc.save(out)

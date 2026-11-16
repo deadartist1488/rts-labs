@@ -4,7 +4,7 @@
 
 **ОС:** Windows 11 Pro (сборка 26200), 8 логических ядер
 
-**IDE:** Visual Studio Community 2026, компилятор MSVC 19.52, CMake 4.3 (генератор «Visual Studio 18 2026», x64)
+**IDE:** Visual Studio Community 2026 (версия 18.12), компилятор MSVC 19.52, CMake 4.3, сборка x64
 
 ## Задача
 
@@ -62,9 +62,9 @@ void unlock() {
 
 Числа партий и съеденных наггетсов совпадают с лабораторной №4, время — тоже (0.91, 1.56 и 5.0 дня).
 
-![Release](screenshots/lab5_release.png)
+![Проверка мьютекса и три сценария, сборка Release](screenshots/lab5_release.png)
 
-![Debug](screenshots/lab5_debug.png)
+![Проверка мьютекса и три сценария, сборка Debug](screenshots/lab5_debug.png)
 
 Дополнительно программа запускалась как `lab5.exe 3` (каждый сценарий по три раза) в Debug и Release — исходы во всех прогонах ожидаемые.
 
