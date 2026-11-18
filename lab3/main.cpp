@@ -19,25 +19,22 @@ std::mutex m;
 
 // Вор берёт монету, только если у него монет не больше, чем у подельника,
 // — так воры берут строго по очереди. Если осталась последняя монета, а
-// поровну у воров уже есть, её отдают покойнику.
+// у воров поровну, её отдают покойнику.
+// Условие цикла (coins > 0) проверяется под мьютексом: мьютекс захватывается
+// перед первой проверкой и в конце каждой итерации, а отпускается внутри тела,
+// чтобы подельник успел сделать свой ход.
 void coin_sharing(std::string name, int& thief_coins, int& companion_coins)
 {
-    for (;;)
+    m.lock();
+    while (coins > 0)
     {
-        m.lock();
-        if (coins == 0) {               // мешок пуст — дележ закончен
-            m.unlock();
-            break;
-        }
         if (coins == 1 && thief_coins == companion_coins) {
             coins--;                    // последняя монета — покойнику
             Dead_coins++;
             if (verbose)
                 std::cout << name << ": последнюю монету отдаём покойнику\n";
-            m.unlock();
-            break;
         }
-        if (thief_coins <= companion_coins) {
+        else if (thief_coins <= companion_coins) {
             coins--;                    // берём ровно одну монету
             thief_coins++;
             if (verbose)
@@ -46,7 +43,9 @@ void coin_sharing(std::string name, int& thief_coins, int& companion_coins)
         }
         m.unlock();
         std::this_thread::yield();      // даём подельнику шанс взять свою
+        m.lock();
     }
+    m.unlock();
 }
 
 void run(int total)

@@ -43,7 +43,7 @@ public:
         dish_.fill(START_DISH);
         eaten_.fill(0);
         alive_.fill(true);
-        ate_round_.fill(0);
+        ate_.fill(true);   // новой партии на столе ещё нет — первым ходит Кук
     }
 
     Outcome run() {
@@ -58,7 +58,7 @@ public:
 
     void report() const {
         std::chrono::duration<double> d = end_ - start_;
-        std::cout << "  итог через " << d.count() << " дн. (" << round_ << " партий):\n";
+        std::cout << "  итог через " << d.count() << " дн. (" << batches_ << " партий):\n";
         for (int k = 0; k < 3; ++k)
             std::cout << "    толстяк " << k + 1 << ": съел " << eaten_[k]
                       << ", на тарелке " << dish_[k]
@@ -75,46 +75,52 @@ private:
         }
     }
 
-    void cook() {
-        for (;;) {
-            if (std::chrono::steady_clock::now() - start_ >= DAYS_TO_QUIT * DAY) {
-                m_.lock();
-                finish(Outcome::Quit);       // 5 дней прошло — Кук уходит сам
-                m_.unlock();
-                return;
-            }
-            m_.lock();
-            if (outcome_ != Outcome::None) { m_.unlock(); return; }
+    bool days_passed() const {
+        return std::chrono::steady_clock::now() - start_ >= DAYS_TO_QUIT * DAY;
+    }
 
-            // Кук выкладывает новую партию, только когда каждый живой толстяк
-            // уже съел свою порцию из предыдущей — строгая очерёдность.
+    // Очерёдность задаёт флаг ate_[k] «толстяк k уже съел свою порцию из
+    // партии, которая сейчас на столе». Кук кладёт новую партию, только когда
+    // все живые толстяки съели (все флаги true), и сбрасывает флаги в false.
+    // Толстяк ест, только когда его флаг false, и сразу ставит true.
+    // Флаги читаются и меняются только под мьютексом m_.
+    void cook() {
+        m_.lock();
+        while (outcome_ == Outcome::None) {
+            if (days_passed()) {
+                finish(Outcome::Quit);           // 5 дней прошло — Кук уходит сам
+                break;
+            }
+
             bool everyone_ate = true;
             for (int k = 0; k < 3; ++k)
-                if (alive_[k] && ate_round_[k] < round_) everyone_ate = false;
+                if (alive_[k] && !ate_[k]) everyone_ate = false;
 
             if (everyone_ate) {
-                for (int k = 0; k < 3; ++k)            // толстяки ждут на мьютексе,
+                for (int k = 0; k < 3; ++k) {          // толстяки ждут на мьютексе,
                     dish_[k] += p_.efficiency_factor;  // пока Кук раскладывает
-                ++round_;
+                    ate_[k] = false;
+                }
+                ++batches_;                            // только для вывода
                 m_.unlock();
                 std::this_thread::sleep_for(COOK_TIME); // готовит следующую партию
             } else {
                 m_.unlock();
                 std::this_thread::yield();
             }
+            m_.lock();
         }
+        m_.unlock();
     }
 
     void fatty(int k) {
-        for (;;) {
-            m_.lock();
-            if (outcome_ != Outcome::None || !alive_[k]) { m_.unlock(); return; }
-
-            if (ate_round_[k] < round_) {             // новая партия на столе
+        m_.lock();
+        while (outcome_ == Outcome::None && alive_[k]) {
+            if (!ate_[k]) {                           // новая партия на столе
                 int take = dish_[k] < p_.gluttony ? dish_[k] : p_.gluttony;
                 dish_[k]  -= take;
                 eaten_[k] += take;
-                ate_round_[k] = round_;
+                ate_[k] = true;
 
                 if (eaten_[k] > EXPLODE_AT) {
                     alive_[k] = false;
@@ -128,15 +134,17 @@ private:
             }
             m_.unlock();
             std::this_thread::yield();
+            m_.lock();
         }
+        m_.unlock();
     }
 
     Params p_;
     Mutex m_;
     std::array<int, 3> dish_{}, eaten_{};
     std::array<bool, 3> alive_{};
-    std::array<long long, 3> ate_round_{};
-    long long round_ = 0;
+    std::array<bool, 3> ate_{};     // съел ли толстяк свою порцию из текущей партии
+    long long batches_ = 0;         // сколько партий выложил Кук (только для вывода)
     Outcome outcome_ = Outcome::None;
     std::chrono::steady_clock::time_point start_{}, end_{};
 };
