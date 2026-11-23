@@ -17,7 +17,7 @@
 
 ## Как собирались и запускались проекты
 
-Все лабораторные — подпроекты одного корневого `CMakeLists.txt` (`add_subdirectory(lab1)` … `add_subdirectory(lab6)`). Лаб.5 зависит от лаб.4 через библиотеку `fatties` (см. `lab4/CMakeLists.txt` и `lab5/CMakeLists.txt`).
+Все лабораторные — подпроекты одного корневого `CMakeLists.txt` (`add_subdirectory(lab1)` … `add_subdirectory(lab6)`). Лаб.5 — это код лаб.4, где `std::mutex` заменён на свой `SpinMutex`.
 
 Сборка шла из командной строки CMake, который входит в Visual Studio 2026, с генератором Visual Studio (x64), в обеих конфигурациях:
 
