@@ -21,3 +21,7 @@ Release/
 *.obj
 # temporary Word files
 ~$*.docx
+# материалы курса (презентации и текст из них) — только локально
+materials/*.pptx
+materials/*.txt
+materials/labs/
