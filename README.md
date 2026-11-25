@@ -14,10 +14,11 @@
 | 4 | Три толстяка | [lab4](lab4) | [md](lab4/REPORT.md), [docx](lab4/REPORT.docx) |
 | 5 | Самодельный мьютекс (atomic + compare_exchange) | [lab5](lab5) | [md](lab5/REPORT.md), [docx](lab5/REPORT.docx) |
 | 6 | Корутины C++20, прогресс-бар с именем | [lab6](lab6) | [md](lab6/REPORT.md), [docx](lab6/REPORT.docx) |
+| 7 | UDP и TCP сокеты (WinSock): сервер и клиент, выход по exit и таймауту, хеш в ответ | [lab7](lab7) | [md](lab7/REPORT.md), [docx](lab7/REPORT.docx) |
 
 ## Как собирались и запускались проекты
 
-Все лабораторные — подпроекты одного корневого `CMakeLists.txt` (`add_subdirectory(lab1)` … `add_subdirectory(lab6)`). Лаб.5 — это код лаб.4, где `std::mutex` заменён на свой `SpinMutex`.
+Все лабораторные — подпроекты одного корневого `CMakeLists.txt` (`add_subdirectory(lab1)` … `add_subdirectory(lab7)`). Лаб.5 — это код лаб.4, где `std::mutex` заменён на свой `SpinMutex`.
 
 Сборка шла из командной строки CMake, который входит в Visual Studio 2026, с генератором Visual Studio (x64), в обеих конфигурациях:
 
