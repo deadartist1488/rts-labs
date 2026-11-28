@@ -1,0 +1,190 @@
+Код lock-free стека из лекции «L8 Lock-free» (видео, вторая часть: версионные структуры данных).
+Переписан со слайдов 17-22 (~13:00-18:40) и из показа кода в Visual Studio (~47:00-49:00).
+Номера строк — как в студии у преподавателя. Не было видно: строки 1-6 (до "#include <limits>"),
+строки 108-110 (между pop() и stop()), хвосты пары длинных комментариев — помечено "..."
+
+================ node.hpp ================
+#pragma once
+
+namespace lf {
+
+    template<typename T>
+    struct Node {
+        typedef Node<T>* NodePtr;
+
+        T data;
+        NodePtr next;
+        uint64_t version;
+    };
+
+}
+
+// У шаблона с оператором new есть особенности, если объекту требуются аргументы.
+// Без allocator object или пляками с преобразованием указателей и размером выделяемой памяти
+// этого не сделать. Выглядит громоздко, оставим пример для объектов с дефолтным конструктором.
+
+================ стек (lines 7-167) ================
+ 7  #include <limits>
+ 8
+ 9  #include "node.hpp"
+10
+11  namespace lf {
+12
+13      // 1 - пишущий поток, несколько читающих
+14      // Читающие потоки ожидают самую свежую версию
+15      // Номер версии служит лишь для задачи очистки мусора
+16      template<typename T>
+17      class LockFreeVersionedStack {
+18      public:
+19          typedef Node<T>* NodePtr;
+20          typedef std::atomic<Node<T>*> AtomicNodePtr;
+21          typedef std::atomic_uint AtomicVersion; // полагаем, что переполнение не ... (комментарий обрезан)
+22          // версий за время жизни программы меньше чем uint64_t
+23
+24          LockFreeVersionedStack(size_t readers_num) : subs_num_(readers_num) {
+25              stop_flag_.store(false);
+26              subscribers_ = new AtomicVersion[readers_num];
+27              for (int i = 0; i < readers_num; i++)
+28              {
+29                  subscribers_[i].store(0);
+30              }
+31          }
+32
+33          ~LockFreeVersionedStack() {
+34              while (pop()); // удаляем все элементы пока указатель не nullptr
+35              for (auto& node : trash_)
+36              {
+37                  delete node;
+38              }
+39          }
+40
+41          bool subscribe(const unsigned int& id, NodePtr& stack_ptr) {
+42              auto& sub = subscribers_[id];
+43              // Цикл ожидания новой версии
+44              while (sub.load(std::memory_order_relaxed) == stack_.version.load(std::memory_order_relaxed)) {
+45                  if (stop_flag_) {
+46                      return false;
+47                  }
+48              }
+49              auto readed_version = sub.load();
+50              while (!sub.compare_exchange_strong(readed_version, stack_.version))
+51              // Повторяем, пока замена не будет успешной
+52              {
+53                  if (stop_flag_) {
+54                      return false;
+55                  }
+56              }
+57              // Между операцией подписания на версию и получения указателя, поток читателя может прерваться.
+58              // Версия может измениться, но ошибки не произойдет. Данные меньше записанной версии не удаляться.
+59              // Т.к. читателя инересует наиболее свежая версия, а не конкретная, то логической ... (обрезано)
+60              stack_ptr = stack_.head.load();
+61              return true;
+62          }
+63
+64          void unsubscribe(const unsigned int& id) {
+65              subscribers_[id].store(0);
+66          }
+67
+    (в лекции на слайде «Создаем элемент», номера строк не видны)
+        void push(T value) {
+            // Только 1 поток создает версии
+            // Готовим новую версию
+            NodePtr new_node = new Node<T>; // создаем новый элемент
+            new_node->data = std::move(value);
+            new_node->next = stack_.head.load();
+            new_node->version = stack_.version.load() + 1;
+
+            // Заменяем старую на новую версию
+            stack_.head.store(new_node);
+            // Если между этими строками возникло прерывание
+            // читающий поток мог подписаться на новую версию,
+            // но stack.version ещё не инкрементирована
+            // Это не приведет к проблеме, потому что предыдущая версия не успеет удал... (обрезано)
+            // т.к. она в subscribers[id]
+            // а новый элемент имеет большую версию, чем у head
+            ++(stack_.version);
+        }
+
+ 85      bool pop() {
+ 86          // Только 1 поток создает версии
+ 87          // Проверяем, пустой ли список
+ 88          NodePtr old_node = stack_.head.load();
+ 89          if (old_node == nullptr) {
+ 90              return false;
+ 91          }
+ 92
+ 93          // Подготавливаем новую версию перед обновлением
+ 94          NodePtr new_first_node = old_node->next;
+ 95          if (new_first_node != nullptr) {
+ 96              // Если это был последний элемент и стек станет пустым,
+ 97              // то нужно только инкрементировать версию головы
+ 98              new_first_node->version = stack_.version.load() + 1;
+ 99          }
+100          // Обновляем стек
+101          stack_.head.store(new_first_node);
+102          ++(stack_.version);
+103
+104          // Собираем мусор
+105          update_trash(old_node);
+106          return true;
+107      }
+     (108-110 не видно)
+112      void stop() {
+113          stop_flag_.store(true);
+114      }
+115
+116      bool is_stopped() {
+117          return stop_flag_.load();
+118      }
+119
+120      unsigned int last_version() {
+121          return stack_.version.load();
+122      }
+123  private:
+124
+125      // Выполняется в пишущем потоке
+126      void update_trash(NodePtr old_node) {
+127          // Добавляем элемент в мусорку
+128          trash_.push_back(old_node);
+129
+130          // Ищем наименьшую актуальную версию
+131          uint64_t min_version = (std::numeric_limits<uint64_t>::max)();
+132          for (size_t i = 0; i < subs_num_; ++i) {
+133              // Если читающий поток уже успел подписаться на более новую версию,
+134              // то минимальная версия для удаления должна стать больше
+135              // но это не отменяет того, что найденные версии надо удалять
+136              // логика удаления не ломается
+137              auto version = subscribers_[i].load();
+138              if (version == 0) {
+139                  continue;
+140              }
+141              min_version = min(min_version, version);
+142          }
+143          // Удаляем все устаревшие ноды
+144          for (size_t i = 0; i < trash_.size();) {
+145              if (trash_[i]->version < min_version) { // Проверка условия для удаления
+146                  delete trash_[i];
+147                  trash_.erase(trash_.begin() + i); // Удаляем элемент из оригинала и обновляем итератор
+148              }
+149              else {
+150                  ++i; // Переходим к следующему элементу
+151              }
+152          }
+153      }
+         (на слайде «Голова стека = указатель + версия»:)
+151/154   struct VersionedHead {
+              AtomicVersion version;
+              AtomicNodePtr head; // стек пустой, если nullptr
+          };
+
+          VersionedHead stack_; // Указатель на начало стека, фиктивный головной элемент
+          AtomicVersion* subscribers_; // Список читателей
+          // индекс соответствует номеру потока, значение - читаемая версия
+          // 0 - поток не подписан
+          size_t subs_num_;
+
+          std::vector<NodePtr> trash_; // неупорядоченный контейнер для хранение устаревших ...
+          std::atomic_bool stop_flag_;
+
+      };
+  }

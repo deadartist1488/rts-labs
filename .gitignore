@@ -24,4 +24,6 @@ Release/
 # материалы курса (презентации и текст из них) — только локально
 materials/*.pptx
 materials/*.txt
+# расшифровка кода стека из видео лекции — на неё ссылается отчёт lab8
+!materials/lecture8_lockfree_stack.txt
 materials/labs/

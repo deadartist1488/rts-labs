@@ -15,10 +15,11 @@
 | 5 | Самодельный мьютекс (atomic + compare_exchange) | [lab5](lab5) | [md](lab5/REPORT.md), [docx](lab5/REPORT.docx) |
 | 6 | Корутины C++20, прогресс-бар с именем | [lab6](lab6) | [md](lab6/REPORT.md), [docx](lab6/REPORT.docx) |
 | 7 | UDP и TCP сокеты (WinSock): сервер и клиент, выход по exit и таймауту, хеш в ответ | [lab7](lab7) | [md](lab7/REPORT.md), [docx](lab7/REPORT.docx) |
+| X | «По ком звонит Колокольчик!»: lock-free стек из лекции, 1 писатель и 4 читателя, проверка консистентности, переполнение версии | [lab8](lab8) | [md](lab8/REPORT.md), [docx](lab8/REPORT.docx) |
 
 ## Как собирались и запускались проекты
 
-Все лабораторные — подпроекты одного корневого `CMakeLists.txt` (`add_subdirectory(lab1)` … `add_subdirectory(lab7)`). Лаб.5 — это код лаб.4, где `std::mutex` заменён на свой `SpinMutex`.
+Все лабораторные — подпроекты одного корневого `CMakeLists.txt` (`add_subdirectory(lab1)` … `add_subdirectory(lab8)`). Лаб.5 — это код лаб.4, где `std::mutex` заменён на свой `SpinMutex`.
 
 Сборка шла из командной строки CMake, который входит в Visual Studio 2026, с генератором Visual Studio (x64), в обеих конфигурациях:
 
